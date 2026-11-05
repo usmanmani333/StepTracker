@@ -1,37 +1,38 @@
 name: Build APK
 
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
+    - uses: actions/checkout@v4
+    
+    - name: Set up Java
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.9'
-        
-    - name: Build Debug APK
-      run: gradle assembleDebug
-      
+        cache: gradle
+    
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew || true
+    
+    - name: Build APK
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew assembleDebug --stacktrace
+        else
+          echo "gradlew not found, using gradle directly"
+          gradle wrapper
+          ./gradlew assembleDebug --stacktrace
+        fi
+    
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: StepTracker-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
-        retention-days: 30
+        name: app-debug
+        path: app/build/outputs/apk/debug/*.apk
+        if-no-files-found: warn
