@@ -14,25 +14,24 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
     
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew || true
+    - name: Install Gradle
+      run: |
+        wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
+        unzip -q gradle-8.9-bin.zip
+        export PATH=$PATH:$PWD/gradle-8.9/bin
+        echo "PATH=$PATH" >> $GITHUB_ENV
+    
+    - name: Generate Gradle Wrapper
+      run: |
+        gradle wrapper --gradle-version 8.9
+        chmod +x gradlew
     
     - name: Build APK
-      run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug --stacktrace
-        else
-          echo "gradlew not found, using gradle directly"
-          gradle wrapper
-          ./gradlew assembleDebug --stacktrace
-        fi
+      run: ./gradlew assembleDebug --no-daemon
     
     - name: Upload APK
-      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: app/build/outputs/apk/debug/*.apk
-        if-no-files-found: warn
+        name: StepTracker-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
